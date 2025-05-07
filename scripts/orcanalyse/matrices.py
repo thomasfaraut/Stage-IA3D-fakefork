@@ -31,6 +31,7 @@ logging.basicConfig(
     format="%(asctime)s - %(levelname)s - %(message)s"
 )
 
+# TF I would suggest to import a dictionnary named Config (?), this one being imported from a yaml file
 from config import EXTREMUM_HEATMAP, COLOR_CHART, WHICH_MATRIX, SMOOTH_MATRIX, TLVs_HEATMAP, SUPERPOSED_PARAMETERS
 
 
@@ -309,6 +310,7 @@ class Matrix():
         VMIN, VMAX = EXTREMUM_HEATMAP[cls.__name__]
         return VMIN, VMAX
 
+    # TODO IJe ne suis pas convaincu par cette variable WHICH_MATRIX 
     @classmethod
     def which_matrix(cls, mtype: str = "count"):
         """
@@ -331,7 +333,7 @@ class Matrix():
         self._insulation_correl = None
         self._PC1 = None
                 
-    
+    # TF Pas utile ici cet underscore
     def _get_insulation_score(self,
                               w: int = 5, 
                               mtype: str = "count"
@@ -358,6 +360,7 @@ class Matrix():
         """
         m = get_property(self, self.which_matrix(mtype))
         
+        # TF Je ne procéderais pas comme ça
         if mtype == "count" :
             pass
         elif mtype == "correl" :
@@ -403,6 +406,7 @@ class Matrix():
 
         return scores
     
+    # TF OK pour ces deux fonctions, je trouve ça très bien, court et concis
     @property
     def insulation_count(self):
         if  not self._insulation_count:
@@ -434,6 +438,8 @@ class Matrix():
         
         bins = pd.DataFrame(bins)
         
+        # TF Cela me semble très compliqué ici
+        # TF je propose plutôt une fonction get_genome
         if genome_path is None :
             if not os.path.isabs(self.refgenome):
                 if not self.refgenome.split('/')[-1] == "sequence" :
@@ -443,9 +449,11 @@ class Matrix():
             else :
                 genome_path = self.refgenome
         
+        
         if genome_path.startswith("./"):
             genome_path = genome_path[2:]
         if not os.path.isabs(genome_path):
+            # TF Aïe, c'est dangereux ça
             base_path = "/home/fforge/Stage-IA3D/notebooks/resources/genome"
             genome_path = os.path.join(base_path, genome_path)
         if not genome_path.endswith(".fa"):
@@ -457,6 +465,7 @@ class Matrix():
 
         return gc_cov
 
+    # TF cet underscore n'est pas utile
     def _get_PC1(self, genome_path: str = None) -> list :
         """
         Method to compute the PC1 values for the matrix using the 
@@ -469,6 +478,8 @@ class Matrix():
         """
         A = replace_nan_with_neighbors_mean(self.obs)
 
+        # TF que se passe-t-il si ce n'est pas une OrcaMatrix
+        # TF il vaut mieux surcharger _get_PC1 dans OrcaMatrix
         if isinstance(self, OrcaMatrix) :
             A = np.exp(A)
             
@@ -497,6 +508,8 @@ class Matrix():
             self._PC1 = self._get_PC1()
         return self._PC1
 
+    # TF Attention, l'appel à cette fonction se traduit par le calcul de tout les scores
+    # TF le nom de la fonction ne le suggère pas
     @property 
     def available_scores(self):
         return {"insulation_count" : self.insulation_count, "insulation_correl" : self.insulation_correl, "PC1" : self.PC1}
@@ -506,6 +519,9 @@ class Matrix():
         """
         Method to get the bin corresponding to a given position (0-based)
         """
+        # TF On peut aussi écrire
+        # TF start, end = self.region
+        # TF See sequence unpacking in https://docs.python.org/2/tutorial/datastructures.html#tuples-and-sequences
         start, end = self.region[1], self.region[2]
         bin_range = (end - start)//len(self.obs_o_exp)
         return (position - start)//bin_range
@@ -544,6 +560,7 @@ class Matrix():
         """
         bp_formatter = EngFormatter('b', places=1)
         
+        # TF une toute petite phrase pour expliquer ce calcul ?
         p_val = [self.bin2positions(0)[0]] \
                 + [self.bin2positions(i)[0] for i in range(49,250,50)]
         f_p_val = ['%sb' %bp_formatter.format_eng(value) for value in p_val]
@@ -554,6 +571,9 @@ class Matrix():
         cmap=hnh_cmap_ext5
         return f_p_val, titles, cmap
        
+
+    # TF cette function devrait retourner un plot 
+    # TF on ne comprend pas pourquoi l'on a la possibilité de rajouter les compartiments     
     def heatmap(self,
                  gs: GridSpec,
                  f: figure.Figure,
@@ -673,6 +693,7 @@ class Matrix():
     def prefix(self):
         return f"{self.__class__.__name__}_{self.gtype}"
 
+    # TF retourne un subplot ?
     def _score_plot(self,
                     gs: GridSpec,
                     f: figure.Figure, 
@@ -802,7 +823,7 @@ class OrcaMatrix(Matrix):
         if self._expect is None :
             expect = np.zeros(self.obs_o_exp.shape)
             values = self.normmat
-            
+            # TF une petite explication
             for i, val in enumerate(values) :
                 if i == 0 :
                     np.fill_diagonal(expect, val)
@@ -816,6 +837,7 @@ class OrcaMatrix(Matrix):
     
     @property
     def obs(self):
+        # TF petite explication
         if self._obs is None:
             obs_o_exp = replace_nan_with_neighbors_mean(self.obs_o_exp)
             
@@ -829,8 +851,6 @@ class OrcaMatrix(Matrix):
     
     def get_genome(self):
         return self.genome
-
-
 
 
 class RealMatrix(Matrix):
@@ -939,6 +959,7 @@ class RealMatrix(Matrix):
         if self._obs_o_exp is not None:
             return self._obs_o_exp
         else :
+            # TF attention self._obs_o_exp != get_obs_over_exp(self.coolmat)
             self._obs_o_exp = np.divide(self.obs, self.expect)
             return get_obs_over_exp(self.coolmat)
     
